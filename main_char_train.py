@@ -8,7 +8,7 @@ from utils_pg import *
 from rnn import *
 import data
 
-use_gpu(0)
+use_gpu(1)
 
 e = 0.01
 lr = 0.8
@@ -20,10 +20,11 @@ cell = "gru"
 # try: sgd, momentum, rmsprop, adagrad, adadelta, adam
 optimizer = "adadelta" 
 
-seqs, i2w, w2i, data_xy = data.char_sequence("/gds/zhwang/zhwang/data/cuhk/st/Raw-Topic-48_", batch_size)
+seqs, i2w, w2i, data_xy, existing_annos = data.char_sequence("/gds/zhwang/zhwang/data/cuhk/st/Raw-Topic-48_", batch_size)
 
 dim_x = len(w2i)
-dim_y = len(w2i)
+dim_y = len(existing_annos)
+#dim_y = len(w2i)
 print "#features = ", dim_x, "#labels = ", dim_y
 
 print "compiling..."
@@ -35,12 +36,8 @@ g_error = 9999.9999
 for i in xrange(200):
     error = 0.0
     in_start = time.time()
-    for batch_id, xy in data_xy.items():
-        X = xy[0] 
-        Y = xy[1]
-        mask = xy[2]
-        local_batch_size = xy[3]
-        cost = model.train(X, mask, Y, lr, local_batch_size)[0]
+    for each_batch in data_xy:
+        cost, activation = model.train(each_batch.x, each_batch.mask, each_batch.y, lr, each_batch.local_batch_size)
         error += cost
     in_time = time.time() - in_start
 

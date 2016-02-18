@@ -16,20 +16,20 @@ class raw_data:
 
 
 class batch_data:
-    def __init__(self, local_topic, w2i, max_sent_len):
+    def __init__(self, local_topic, w2i, existing_annos, max_sent_len):
         dic_size = len(w2i)
-        local_batch_size = len(local_topic)
-        self.x = np.zeros((max_sent_len, dic_size * local_batch_size), dtype = theano.config.floatX)
-        self.y = np.zeros((max_sent_len, local_batch_size), dtype = theano.config.floatX)
-        self.mask = np.zeros((max_sent_len, local_batch_size), dtype = theano.config.floatX)
-        self.batch_size = local_batch_size
+        self.local_batch_size = len(local_topic)
+        self.x = np.zeros((max_sent_len, dic_size * self.local_batch_size), dtype = theano.config.floatX)
+        self.y = np.zeros((max_sent_len, len(existing_annos) * self.local_batch_size), dtype = theano.config.floatX)
+        self.mask = np.zeros((max_sent_len, self.local_batch_size), dtype = theano.config.floatX)
 
-        for idx_sent in xrange(self.batch_size):
+        for idx_sent in xrange(self.local_batch_size):
             each_sent = local_topic[idx_sent]
             x_offset = idx_sent * dic_size
+            y_offset = idx_sent * len(existing_annos)
             for idx_word in xrange(len(each_sent.word)):
                 self.x[idx_word, x_offset + w2i[each_sent.word[idx_word]]] = 1
-                self.y[idx_word, idx_sent] = each_sent.anno[idx_word]
+                self.y[idx_word, y_offset + existing_annos.index(each_sent.anno[idx_word])] = 1
                 self.mask[idx_word, idx_sent] = 1
 
 def char_sequence(f_path = None, batch_size = 1):
@@ -37,6 +37,7 @@ def char_sequence(f_path = None, batch_size = 1):
     i2w = {}
     w2i = {}
     topic = []
+    existing_annos = []
     if f_path == None:
         f = open(curr_path + "/data/toy.txt", "r")
     else:
@@ -61,20 +62,23 @@ def char_sequence(f_path = None, batch_size = 1):
         if pair[0] not in w2i:
             i2w[len(w2i)] = pair[0]
             w2i[pair[0]] = len(w2i)
+        if pair[1] not in existing_annos:
+            existing_annos.append(pair[1])
 
     f.close()
 
     data_xy = []
     num_batch = len(topic) / batch_size + 1
     for i in xrange(num_batch - 1):
-        each_batch = batch_data(topic[i * batch_size : (i + 1) * batch_size], w2i, max_sent_len)
+        each_batch = batch_data(topic[i * batch_size : (i + 1) * batch_size], w2i, existing_annos, max_sent_len)
         data_xy.append(each_batch)
-    last_batch = batch_data(topic[(num_batch - 1) * batch_size : ], w2i, max_sent_len)
+    last_batch = batch_data(topic[(num_batch - 1) * batch_size : ], w2i, existing_annos, max_sent_len)
     data_xy.append(last_batch)
 
     print "#dic = " + str(len(w2i))
-    return topic, i2w, w2i, data_xy
+    return topic, i2w, w2i, data_xy, existing_annos
 
+'''
 def batch_sequences(topic, dim, batch_size):
     data_xy = {}
     batch_x = []
@@ -199,3 +203,4 @@ def index2seqs(lines, x_index, w2i):
         concat_X[:, b_i * dim : (b_i + 1) * dim] = X 
         concat_Y[:, b_i * dim : (b_i + 1) * dim] = Y
     return concat_X, concat_Y, mask, len(batch_x)
+'''

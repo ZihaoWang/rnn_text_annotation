@@ -33,10 +33,10 @@ class RNN(object):
         for i in xrange(len(self.hidden_size)):
             if i == 0:
                 layer_input = self.X
-                shape = (self.in_size, self.hidden_size[0])
+                shape = (self.in_size, self.hidden_size[0]) # 2148, 100
             else:
                 layer_input = self.layers[i - 1].activation
-                shape = (self.hidden_size[i - 1], self.hidden_size[i])
+                shape = (self.hidden_size[i - 1], self.hidden_size[i]) # 100, 100
 
             if self.cell == "gru":
                 hidden_layer = GRULayer(rng, str(i), shape, layer_input,
@@ -48,8 +48,8 @@ class RNN(object):
             self.layers.append(hidden_layer)
             self.params += hidden_layer.params
 
-        # output layer
-        output_layer = SoftmaxLayer((hidden_layer.out_size, self.out_size),
+        # output of hidden layer (66, 2000)
+        output_layer = SoftmaxLayer((hidden_layer.out_size, self.out_size), # (100, 26)
                                     hidden_layer.activation, self.batch_size)
         self.layers.append(output_layer)
         self.params += output_layer.params
@@ -63,6 +63,8 @@ class RNN(object):
     def define_train_test_funcs(self):
         activation = self.layers[len(self.layers) - 1].activation
         self.Y = T.matrix("Y")
+        lr = T.scalar("lr")
+        #'''
         cost = self.categorical_crossentropy(activation, self.Y)
         gparams = []
         for param in self.params:
@@ -70,7 +72,6 @@ class RNN(object):
             gparam = T.clip(T.grad(cost, param), -10, 10)
             gparams.append(gparam)
 
-        lr = T.scalar("lr")
         # eval(): string to function
         optimizer = eval(self.optimizer)
         updates = optimizer(self.params, gparams, lr)
@@ -84,10 +85,12 @@ class RNN(object):
         
         self.train = theano.function(inputs = [self.X, self.mask, self.Y, lr, self.batch_size],
                                                givens = {self.is_train : np.cast['int32'](1)},
-                                               outputs = [cost],
-                                               updates = updates)
+                                               outputs = [cost, activation],
+                                               updates = updates,
+                                               on_unused_input='ignore')
         self.predict = theano.function(inputs = [self.X, self.mask, self.batch_size],
                                                  givens = {self.is_train : np.cast['int32'](0)},
                                                  outputs = [activation])
   
         #theano.printing.pydotprint(self.train, outfile="./model/train.png", var_with_name_simple=True) 
+        #'''
