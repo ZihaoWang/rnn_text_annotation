@@ -7,15 +7,19 @@ import theano.tensor as T
 from utils_pg import *
 from rnn import *
 
-use_gpu(0)
+use_gpu(1)
 
 import data
 drop_rate = 0.
-batch_size = 20
-seqs, i2w, w2i, data_xy = data.char_sequence("/data/toy.txt", batch_size)
+batch_size = 1
+input_size = 9235
+output_size = 104
+#seqs, i2w, w2i, data_xy = data.char_sequence("/data/toy.txt", batch_size)
+seqs, i2w, w2i, data_xy, existing_annos = data.char_sequence("/gds/zhwang/zhwang/data/cuhk/testing_data", batch_size, input_size, output_size)
 hidden_size = [100, 100]
-dim_x = len(w2i)
-dim_y = len(w2i)
+#dim_x = len(w2i)
+dim_x = input_size
+dim_y = output_size
 print dim_x, dim_y
 
 cell = "gru" # cell = "gru" or "lstm"
@@ -27,22 +31,21 @@ model = load_model("./model/char_rnn.model", model)
 
 num_x = 0.0
 acc = 0.0
-for s in xrange(len(seqs)):
-    seq = seqs[s]
-    X = seq[0 : len(seq) - 1, ] 
-    Y = seq[1 : len(seq), ]
-    label = np.argmax(Y, axis=1)
-    p_label = np.argmax(model.predict(X, np.ones((X.shape[0], 1), np.float32), 1)[0], axis=1)
+idx = 0
+for each_batch in data_xy:
+    label = np.argmax(each_batch.y, axis = 1)
+    activation = model.predict(each_batch.x, each_batch.mask, each_batch.local_batch_size)[0]
+    p_label = np.argmax(activation, axis = 1)
 
-    print i2w[np.argmax(X[0,])], 
     for c in xrange(len(label)):
         num_x += 1
         if label[c] == p_label[c]:
             acc += 1
-        print i2w[p_label[c]],
-    print "\n",
+    idx += 1
+    print idx
 print "Accuracy = " + str(acc / num_x)
 
+'''
 X = np.zeros((1, dim_x), np.float32)
 a = "r"
 X[0, w2i[a]] = 1
@@ -53,4 +56,4 @@ for i in xrange(100):
     p_label = np.argmax(Y)
     print i2w[p_label],
     X = np.concatenate((X, np.reshape(Y, (1, len(Y)))), axis=0)
-
+'''

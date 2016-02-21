@@ -15,16 +15,19 @@ lr = 0.8
 drop_rate = 0.
 batch_size = 20
 hidden_size = [100, 100]
+input_size = 9235
+output_size = 104
 # try: gru, lstm
 cell = "gru"
 # try: sgd, momentum, rmsprop, adagrad, adadelta, adam
 optimizer = "adadelta" 
 
-seqs, i2w, w2i, data_xy, existing_annos = data.char_sequence("/gds/zhwang/zhwang/data/cuhk/st/Raw-Topic-48_", batch_size)
+seqs, i2w, w2i, data_xy, existing_annos = data.char_sequence("/gds/zhwang/zhwang/data/cuhk/11", batch_size, input_size, output_size)
 
-dim_x = len(w2i)
-dim_y = len(existing_annos)
-#dim_y = len(w2i)
+#dim_x = len(w2i)
+dim_x = input_size
+dim_y = output_size
+#dim_y = len(existing_annos)
 print "#features = ", dim_x, "#labels = ", dim_y
 
 print "compiling..."
@@ -33,12 +36,12 @@ model = RNN(dim_x, dim_y, hidden_size, cell, optimizer, drop_rate)
 print "training..."
 start = time.time()
 g_error = 9999.9999
-for i in xrange(200):
+for i in xrange(100):
     error = 0.0
     in_start = time.time()
     for each_batch in data_xy:
-        cost, activation = model.train(each_batch.x, each_batch.mask, each_batch.y, lr, each_batch.local_batch_size)
-        error += cost
+        cost = model.train(each_batch.x, each_batch.mask, each_batch.y, lr, each_batch.local_batch_size)
+        error += cost[0]
     in_time = time.time() - in_start
 
     error /= len(seqs);

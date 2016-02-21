@@ -85,7 +85,7 @@ class RNN(object):
         
         self.train = theano.function(inputs = [self.X, self.mask, self.Y, lr, self.batch_size],
                                                givens = {self.is_train : np.cast['int32'](1)},
-                                               outputs = [cost, activation],
+                                               outputs = [cost],
                                                updates = updates,
                                                on_unused_input='ignore')
         self.predict = theano.function(inputs = [self.X, self.mask, self.batch_size],
